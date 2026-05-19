@@ -1,4 +1,6 @@
 <?php
+// Konfigurasi database NextIntern
+// Sesuaikan username/password jika MySQL Anda berbeda.
 
 $DB_HOST = 'localhost';
 $DB_NAME = 'nextintern_db';

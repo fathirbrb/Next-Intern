@@ -1,6 +1,6 @@
 -- =========================================================
 -- Database NextIntern - Aktor Admin Sistem
--- Untuk project PHP + MySQL
+-- Untuk project PHP + MySQL/MariaDB
 -- Login demo Admin Sistem:
 -- Email    : sysadmin@test.com
 -- Password : password

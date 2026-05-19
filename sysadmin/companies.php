@@ -23,6 +23,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     flash_set('success', 'Perusahaan berhasil ditambahkan.');
     redirect('sysadmin/companies.php');
   }
+  if ($action === 'update') {
+    $stmt = $pdo->prepare("UPDATE companies SET name=?, email=?, industry=?, location=?, description=?, is_verified=?, partnership_since=?, partnership_status=? WHERE id=?");
+    $stmt->execute([
+      trim($_POST['name'] ?? ''),
+      trim($_POST['email'] ?? ''),
+      trim($_POST['industry'] ?? ''),
+      trim($_POST['location'] ?? ''),
+      trim($_POST['description'] ?? ''),
+      isset($_POST['is_verified']) ? 1 : 0,
+      ($_POST['partnership_since'] ?? '') ?: null,
+      $_POST['partnership_status'] ?? 'active',
+      (int) ($_POST['id'] ?? 0)
+    ]);
+    flash_set('success', 'Perusahaan berhasil diperbarui.');
+    redirect('sysadmin/companies.php');
+  }
   if ($action === 'delete') {
     $pdo->prepare("DELETE FROM companies WHERE id=?")->execute([(int) ($_POST['id'] ?? 0)]);
     flash_set('success', 'Perusahaan berhasil dihapus.');
@@ -49,6 +65,13 @@ $stmt = $pdo->prepare("SELECT * FROM companies" . ($where ? ' WHERE ' . implode(
 $stmt->execute($params);
 $companies = $stmt->fetchAll();
 $stat = $pdo->query("SELECT COUNT(*) total, SUM(is_verified=1) verified, SUM(partnership_status='active') active, SUM(is_verified=0) pending FROM companies")->fetch();
+$editCompany = null;
+$editId = (int) ($_GET['edit'] ?? 0);
+if ($editId > 0) {
+  $stmt = $pdo->prepare("SELECT * FROM companies WHERE id=?");
+  $stmt->execute([$editId]);
+  $editCompany = $stmt->fetch() ?: null;
+}
 ?>
 <div class="grid grid-4">
   <div class="card stat">
@@ -104,6 +127,40 @@ $stat = $pdo->query("SELECT COUNT(*) total, SUM(is_verified=1) verified, SUM(par
   </form>
 </details>
 
+<?php if ($editCompany): ?>
+  <details class="card form-panel" open>
+    <summary><span><?= icon_svg('edit') ?> Edit Perusahaan</span><span
+        class="badge badge-blue"><?= e($editCompany['email']) ?></span></summary>
+    <form class="form-body" method="post">
+      <input type="hidden" name="action" value="update">
+      <input type="hidden" name="id" value="<?= e($editCompany['id']) ?>">
+      <div class="form-grid">
+        <div class="form-field"><label>Nama</label><input class="input" name="name" value="<?= e($editCompany['name']) ?>"
+            required></div>
+        <div class="form-field"><label>Email</label><input class="input" type="email" name="email"
+            value="<?= e($editCompany['email']) ?>" required></div>
+        <div class="form-field"><label>Industri</label><input class="input" name="industry"
+            value="<?= e($editCompany['industry']) ?>" required></div>
+        <div class="form-field"><label>Lokasi</label><input class="input" name="location"
+            value="<?= e($editCompany['location']) ?>" required></div>
+        <div class="form-field"><label>Sejak</label><input class="input" type="date" name="partnership_since"
+            value="<?= e($editCompany['partnership_since']) ?>"></div>
+        <div class="form-field"><label>Status Kemitraan</label><select class="select" name="partnership_status">
+            <option value="active" <?= $editCompany['partnership_status'] === 'active' ? 'selected' : '' ?>>Aktif</option>
+            <option value="inactive" <?= $editCompany['partnership_status'] === 'inactive' ? 'selected' : '' ?>>Tidak Aktif
+            </option>
+          </select></div>
+        <div class="form-field full"><label>Deskripsi</label><textarea class="input"
+            name="description"><?= e($editCompany['description']) ?></textarea></div>
+        <div class="form-field full"><label class="check-label"><input type="checkbox" name="is_verified"
+              <?= (int) $editCompany['is_verified'] === 1 ? 'checked' : '' ?>> Terverifikasi</label></div>
+      </div>
+      <div class="form-actions"><a class="btn outline" href="<?= e(url('sysadmin/companies.php')) ?>">Batal</a><button
+          class="btn" type="submit">Simpan Perubahan</button></div>
+    </form>
+  </details>
+<?php endif; ?>
+
 <div class="card mt-18">
   <div class="table-wrap">
     <table class="table">
@@ -136,7 +193,8 @@ $stat = $pdo->query("SELECT COUNT(*) total, SUM(is_verified=1) verified, SUM(par
             </td>
             <td><span class="badge badge-blue"><?= e(status_label($c['partnership_status'])) ?></span></td>
             <td>
-              <div class="actions"><button class="btn outline sm" type="button"><?= icon_svg('edit') ?></button>
+              <div class="actions"><a class="btn outline sm"
+                  href="<?= e(url('sysadmin/companies.php?edit=' . $c['id'])) ?>"><?= icon_svg('edit') ?></a>
                 <form method="post"><input type="hidden" name="action" value="delete"><input type="hidden" name="id"
                     value="<?= e($c['id']) ?>"><button class="btn danger sm"
                     type="submit"><?= icon_svg('trash') ?></button></form>
